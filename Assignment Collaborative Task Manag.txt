@@ -1,0 +1,88 @@
+Assignment: Collaborative Task Management System
+
+Objective: Design and implement a backend and frontend for a Collaborative Task Management System. This application allows users to create, assign, and track tasks across multiple projects. The system should support real-time collaboration, task categorization, and progress tracking.
+
+Requirements
+
+User Management
+	Each user should have an email, name, and role (Admin, Manager, or Member).
+	Users should be able to create, update, and delete tasks within assigned projects.
+
+Project & Task Management
+	Users can create projects and add team members to a project.
+	Each project can have multiple tasks assigned to different users.
+	Each task must have:
+	A title, description, and due date.
+	A status (To-Do, In Progress, Completed).
+	A priority (Low, Medium, High).
+	An assignee (a user working on the task).
+	A reporter (the user who created the task).
+
+Task Assignment & Collaboration
+	Users can comment on tasks to discuss progress.
+	Users can attach files to tasks.
+	Users receive notifications when a task is assigned to them or updated.
+	Tasks can be transferred between users if needed.
+
+Reporting & Tracking
+	Users can view all tasks assigned to them.
+	Managers/Admins can filter tasks based on priority, assignee, and status.
+	The system should generate a downloadable project summary report with details of all tasks, assignees, and statuses.
+
+Deliverables :-
+
+Backend Service: Design the backend service ( using Node JS ) to handle user, project, and task management.
+
+API Endpoints
+	
+User Endpoints:
+	Create user.
+	Retrieve user details.
+	Assign users to projects.
+
+Project Endpoints:
+	Create a project.
+	Add/remove users from a project.
+	Retrieve project details.
+
+Task Endpoints:
+	Create a task.
+	Retrieve tasks by user/project.
+	Update task status.
+	Comment on tasks.
+	Attach files to tasks.
+	Download project summary report.
+
+Frontend Requirements ( Using React only)
+	Login & User Dashboard: Display assigned tasks and recent activity.
+	Project Management Page: Allow users to create and manage projects.
+	Task Board:
+		Display tasks categorized by status.
+		Allow drag-and-drop for status updates.
+	Task Details Page: Show task info, comments, and attachments.
+	Notification System: Display updates for assigned tasks.
+
+Data Validation & Constraints
+	Validate email format during user creation.
+	Ensure due dates are in the future when creating tasks.
+	Prevent duplicate tasks within the same project.
+
+Documentation
+	Setup & Installation Instructions
+	API Documentation
+	Code Comments & Best Practices
+
+Evaluation Criteria
+	Correctness: Functional and meets requirements.
+	Code Quality: Readable, modular, and maintainable.
+	Documentation: Comprehensive and easy to follow.
+	Innovation: Unique features or optimizations.
+
+Bonus Points
+✔ Implement user authentication & role-based access.
+✔ Deploy the web application on a cloud service (AWS, GCP, Azure, etc.).
+✔ Ensure proper error handling and input validation.
+✔ Optimize performance for handling large datasets efficiently.
+✔ Implement real-time task updates using WebSockets.
+✔ Write unit and integration tests for better reliability.
+
