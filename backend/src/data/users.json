@@ -1,0 +1,37 @@
+[
+    {
+        "name": "Admin User",
+        "email": "admin@example.com",
+        "password": "123456",
+        "role": "Admin",
+        "isActive": true
+    },
+    {
+        "name": "Manager User",
+        "email": "manager@example.com",
+        "password": "123456",
+        "role": "Manager",
+        "isActive": true
+    },
+    {
+        "name": "Member User",
+        "email": "member@example.com",
+        "password": "123456",
+        "role": "Member",
+        "isActive": true
+    },
+    {
+        "name": "Jane Doe",
+        "email": "jane@example.com",
+        "password": "123456",
+        "role": "Member",
+        "isActive": true
+    },
+    {
+        "name": "John Doe",
+        "email": "john@example.com",
+        "password": "123456",
+        "role": "Member",
+        "isActive": true
+    }
+]
