@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import projectService from '../services/projectService';
 
@@ -7,9 +8,10 @@ const ProjectContext = createContext(null);
 
 export const ProjectProvider = ({ children }) => {
     const [projects, setProjects] = useState([]);
-    const [currentProject, setCurrentProject] = useState(null);
+    const [project, setProject] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const navigate = useNavigate();
 
     // Fetch all projects
     const fetchProjects = useCallback(async () => {
@@ -18,26 +20,28 @@ export const ProjectProvider = ({ children }) => {
             setError(null);
             const data = await projectService.getProjects();
             setProjects(data);
+            return data;
         } catch (error) {
             console.error('Error fetching projects:', error);
-            setError(error.response?.data?.message || 'Failed to fetch projects');
+            setError(error.message || 'Failed to fetch projects');
             toast.error('Failed to fetch projects');
+            return [];
         } finally {
             setLoading(false);
         }
     }, []);
 
-    // Fetch a single project by ID
+    // Fetch single project by ID
     const fetchProject = useCallback(async (projectId) => {
         try {
             setLoading(true);
             setError(null);
-            const data = await projectService.getProject(projectId);
-            setCurrentProject(data);
+            const data = await projectService.getProjectById(projectId);
+            setProject(data);
             return data;
         } catch (error) {
             console.error(`Error fetching project ${projectId}:`, error);
-            setError(error.response?.data?.message || 'Failed to fetch project');
+            setError(error.message || 'Failed to fetch project');
             toast.error('Failed to fetch project details');
             return null;
         } finally {
@@ -51,12 +55,12 @@ export const ProjectProvider = ({ children }) => {
             setLoading(true);
             setError(null);
             const data = await projectService.createProject(projectData);
-            setProjects(prevProjects => [...prevProjects, data]);
-            toast.success('Project created successfully!');
+            setProjects(prev => [...prev, data]);
+            toast.success('Project created successfully');
             return data;
         } catch (error) {
             console.error('Error creating project:', error);
-            setError(error.response?.data?.message || 'Failed to create project');
+            setError(error.message || 'Failed to create project');
             toast.error('Failed to create project');
             return null;
         } finally {
@@ -64,33 +68,30 @@ export const ProjectProvider = ({ children }) => {
         }
     }, []);
 
-    // Update a project
+    // Update an existing project
     const updateProject = useCallback(async (projectId, projectData) => {
         try {
             setLoading(true);
             setError(null);
             const data = await projectService.updateProject(projectId, projectData);
-            setProjects(prevProjects =>
-                prevProjects.map(project =>
-                    project._id === projectId ? data : project
-                )
+
+            // Update local state
+            setProject(data);
+            setProjects(prev =>
+                prev.map(p => p._id === projectId ? data : p)
             );
 
-            if (currentProject && currentProject._id === projectId) {
-                setCurrentProject(data);
-            }
-
-            toast.success('Project updated successfully!');
+            toast.success('Project updated successfully');
             return data;
         } catch (error) {
             console.error(`Error updating project ${projectId}:`, error);
-            setError(error.response?.data?.message || 'Failed to update project');
+            setError(error.message || 'Failed to update project');
             toast.error('Failed to update project');
             return null;
         } finally {
             setLoading(false);
         }
-    }, [currentProject]);
+    }, []);
 
     // Delete a project
     const deleteProject = useCallback(async (projectId) => {
@@ -99,92 +100,76 @@ export const ProjectProvider = ({ children }) => {
             setError(null);
             await projectService.deleteProject(projectId);
 
-            setProjects(prevProjects =>
-                prevProjects.filter(project => project._id !== projectId)
-            );
+            // Update local state
+            setProjects(prev => prev.filter(p => p._id !== projectId));
 
-            if (currentProject && currentProject._id === projectId) {
-                setCurrentProject(null);
-            }
-
-            toast.success('Project deleted successfully!');
+            toast.success('Project deleted successfully');
+            navigate('/projects');
             return true;
         } catch (error) {
             console.error(`Error deleting project ${projectId}:`, error);
-            setError(error.response?.data?.message || 'Failed to delete project');
+            setError(error.message || 'Failed to delete project');
             toast.error('Failed to delete project');
             return false;
         } finally {
             setLoading(false);
         }
-    }, [currentProject]);
+    }, [navigate]);
 
-    // Add a member to project
-    const addProjectMember = useCallback(async (projectId, userId) => {
+    // Add member to a project
+    const addMemberToProject = useCallback(async (projectId, email) => {
         try {
             setLoading(true);
             setError(null);
-            const data = await projectService.addProjectMember(projectId, userId);
+            const data = await projectService.addMember(projectId, { email });
 
-            // Update projects list
-            setProjects(prevProjects =>
-                prevProjects.map(project =>
-                    project._id === projectId ? data : project
-                )
+            // Update local state
+            setProject(data);
+            setProjects(prev =>
+                prev.map(p => p._id === projectId ? data : p)
             );
 
-            // Update current project if it's the one being modified
-            if (currentProject && currentProject._id === projectId) {
-                setCurrentProject(data);
-            }
-
-            toast.success('Member added to project successfully!');
+            toast.success('Member added to project');
             return data;
         } catch (error) {
             console.error(`Error adding member to project ${projectId}:`, error);
-            setError(error.response?.data?.message || 'Failed to add member to project');
+            setError(error.message || 'Failed to add member');
             toast.error('Failed to add member to project');
             return null;
         } finally {
             setLoading(false);
         }
-    }, [currentProject]);
+    }, []);
 
-    // Remove a member from project
-    const removeProjectMember = useCallback(async (projectId, userId) => {
+    // Remove member from a project
+    const removeMemberFromProject = useCallback(async (projectId, userId) => {
         try {
             setLoading(true);
             setError(null);
-            const data = await projectService.removeProjectMember(projectId, userId);
+            const data = await projectService.removeMember(projectId, userId);
 
-            // Update projects list
-            setProjects(prevProjects =>
-                prevProjects.map(project =>
-                    project._id === projectId ? data : project
-                )
+            // Update local state
+            setProject(data);
+            setProjects(prev =>
+                prev.map(p => p._id === projectId ? data : p)
             );
 
-            // Update current project if it's the one being modified
-            if (currentProject && currentProject._id === projectId) {
-                setCurrentProject(data);
-            }
-
-            toast.success('Member removed from project successfully!');
+            toast.success('Member removed from project');
             return data;
         } catch (error) {
             console.error(`Error removing member from project ${projectId}:`, error);
-            setError(error.response?.data?.message || 'Failed to remove member from project');
+            setError(error.message || 'Failed to remove member');
             toast.error('Failed to remove member from project');
             return null;
         } finally {
             setLoading(false);
         }
-    }, [currentProject]);
+    }, []);
 
     // Memoize context value
     const contextValue = useMemo(() => ({
         projects,
-        currentProject,
+        project,
         loading,
         error,
         fetchProjects,
@@ -192,11 +177,11 @@ export const ProjectProvider = ({ children }) => {
         createProject,
         updateProject,
         deleteProject,
-        addProjectMember,
-        removeProjectMember
+        addMemberToProject,
+        removeMemberFromProject
     }), [
         projects,
-        currentProject,
+        project,
         loading,
         error,
         fetchProjects,
@@ -204,8 +189,8 @@ export const ProjectProvider = ({ children }) => {
         createProject,
         updateProject,
         deleteProject,
-        addProjectMember,
-        removeProjectMember
+        addMemberToProject,
+        removeMemberFromProject
     ]);
 
     return (

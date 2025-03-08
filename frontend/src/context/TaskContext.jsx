@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import taskService from '../services/taskService';
+import useTaskOptimizations from '../hooks/useTaskOptimizations';
 
 // Create context
 const TaskContext = createContext(null);
@@ -10,6 +11,9 @@ export const TaskProvider = ({ children }) => {
     const [currentTask, setCurrentTask] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+
+    // Use task optimizations hook
+    const { debounce, cacheTasks, getCachedTasks } = useTaskOptimizations();
 
     // Fetch all tasks or filter by project or user
     const fetchTasks = useCallback(async (filters = {}) => {
@@ -21,7 +25,7 @@ export const TaskProvider = ({ children }) => {
             return data;
         } catch (error) {
             console.error('Error fetching tasks:', error);
-            setError(error.response?.data?.message || 'Failed to fetch tasks');
+            setError(error.message || 'Failed to fetch tasks');
             toast.error('Failed to fetch tasks');
             return [];
         } finally {
@@ -29,23 +33,41 @@ export const TaskProvider = ({ children }) => {
         }
     }, []);
 
-    // Fetch tasks by project ID
+    // Fetch tasks by project ID with caching
     const fetchTasksByProject = useCallback(async (projectId) => {
         try {
+            // First check cache
+            const cachedData = getCachedTasks(projectId);
+            if (cachedData) {
+                setTasks(cachedData);
+
+                // Refresh in background after returning cached data
+                taskService.getTasksByProject(projectId).then(freshData => {
+                    setTasks(freshData);
+                    cacheTasks(projectId, freshData);
+                }).catch(err => console.error('Background refresh failed:', err));
+
+                return cachedData;
+            }
+
+            // If no cache hit, fetch normally
             setLoading(true);
             setError(null);
             const data = await taskService.getTasksByProject(projectId);
             setTasks(data);
+
+            // Store in cache for future use
+            cacheTasks(projectId, data);
             return data;
         } catch (error) {
             console.error(`Error fetching tasks for project ${projectId}:`, error);
-            setError(error.response?.data?.message || 'Failed to fetch project tasks');
+            setError(error.message || 'Failed to fetch project tasks');
             toast.error('Failed to fetch project tasks');
             return [];
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [getCachedTasks, cacheTasks]);
 
     // Fetch tasks by user ID
     const fetchTasksByUser = useCallback(async (userId) => {
@@ -83,24 +105,26 @@ export const TaskProvider = ({ children }) => {
         }
     }, []);
 
-    // Create a new task
-    const createTask = useCallback(async (taskData) => {
-        try {
-            setLoading(true);
-            setError(null);
-            const data = await taskService.createTask(taskData);
-            setTasks(prevTasks => [...prevTasks, data]);
-            toast.success('Task created successfully!');
-            return data;
-        } catch (error) {
-            console.error('Error creating task:', error);
-            setError(error.response?.data?.message || 'Failed to create task');
-            toast.error('Failed to create task');
-            return null;
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+    // Create task with debouncing to prevent duplicate submissions
+    const createTask = useCallback((taskData) => {
+        return debounce(async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                const newTask = await taskService.createTask(taskData);
+                setTasks(prevTasks => [...prevTasks, newTask]);
+                toast.success('Task created successfully');
+                return newTask;
+            } catch (error) {
+                console.error('Error creating task:', error);
+                setError(error.message || 'Failed to create task');
+                toast.error('Failed to create task');
+                return null;
+            } finally {
+                setLoading(false);
+            }
+        }, 'createTask', 500)();
+    }, [debounce]);
 
     // Update a task
     const updateTask = useCallback(async (taskId, taskData) => {
